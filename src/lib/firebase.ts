@@ -11,7 +11,7 @@ const firebaseConfig: FirebaseOptions = {
     apiKey: "AIzaSyCW8UwbQ0-6zf-GLktC741xpVS-T3AL__E",
     authDomain: "resto-flow-app.firebaseapp.com",
     projectId: "resto-flow-app",
-    storageBucket: "resto-flow-app.firebasestorage.app",
+    storageBucket: "resto-flow-app.appspot.com",
     messagingSenderId: "115823499590",
     appId: "1:115823499590:web:bbb401f9e64c1d323b6d47",
 };

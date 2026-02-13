@@ -43,3 +43,36 @@ RestoFlow implementa un backend moderno de tipo **serverless**, utilizando las c
     -   **Seguridad:** El control de acceso a los datos se delega a las **Reglas de Seguridad de Firestore**. Estas reglas, configuradas en la consola de Firebase, actúan como un firewall a nivel de base de datos, definiendo con precisión qué usuarios pueden leer, escribir o modificar cada documento. Esto proporciona una capa de seguridad robusta y escalable.
 
 -   **Exposición de servicios (Server Actions en lugar de API REST):** En lugar de una API REST tradicional, el proyecto utiliza **Next.js Server Actions**. Los componentes del frontend importan y llaman a estas funciones asíncronas (`updateOrder`, `getTables`, etc.) como si fueran funciones locales. Next.js se encarga de la comunicación segura entre el cliente y el servidor, eliminando la necesidad de gestionar endpoints, `fetch`, y la serialización de datos manualmente, lo que resulta en un código más limpio, seguro y con mejor rendimiento.
+
+---
+
+## Base de Datos
+
+Aunque el requerimiento inicial menciona un sistema gestor relacional como MySQL, el proyecto RestoFlow utiliza una solución más moderna y adaptada a las aplicaciones web en tiempo real: **Firebase Firestore**. Se trata de una base de datos NoSQL basada en documentos que ofrece ventajas significativas para este tipo de aplicación.
+
+-   **Sistema NoSQL (Firestore) vs. Relacional (MySQL):** En lugar de tablas rígidas, Firestore organiza los datos en "colecciones" de "documentos". Esto proporciona una enorme flexibilidad para evolucionar el menú, los pedidos y los datos del restaurante sin necesidad de migraciones de base de datos complejas. Su principal ventaja es la **sincronización en tiempo real**, que permite que los cambios se reflejen instantáneamente en todos los dispositivos conectados (ej., el cajero ve un pedido tan pronto como el camarero lo envía).
+
+-   **Estructura de "Tablas" en Firestore:** Las "tablas" mencionadas se corresponden directamente con "colecciones" en Firestore:
+    -   **Usuarios:** Se gestionan en la colección `employees`.
+    -   **Mesas:** Se gestionan en la colección `tables`.
+    -   **Productos:** Se gestionan en la colección `menu`.
+    -   **Historial de transacciones:** Se gestionan en la colección `transactions`.
+    -   **Pedidos:** No son una colección separada, sino un campo (`order`) dentro de cada documento de la colección `tables`, lo que simplifica la consulta del estado de una mesa.
+
+-   **Integridad Referencial (Claves Primarias y Foráneas):**
+    -   **Clave Primaria:** Cada documento en Firestore tiene un **ID único** generado automáticamente, que actúa como su clave primaria.
+    -   **Clave Foránea:** La relación entre colecciones se maneja a nivel de aplicación. Por ejemplo, un documento en `transactions` contiene el `tableId`, vinculándolo a la mesa correspondiente. Aunque Firestore no impone restricciones de clave foránea como MySQL, esta lógica se gestiona de forma segura en las **Server Actions**, garantizando la coherencia de los datos.
+
+---
+
+## Seguridad y Control
+
+La plataforma Firebase proporciona un conjunto robusto de herramientas de seguridad que cumplen y superan los requisitos solicitados.
+
+-   **Autenticación por Roles:** El sistema ya implementa esto. En la colección `employees`, cada documento tiene un campo `role` ("waiter", "cashier"). La lógica de la aplicación en `LoginForm.tsx` redirige al usuario a la interfaz correcta según su rol después de verificar su PIN. También existe un rol de "Administrador" con acceso a un panel de control separado y seguro.
+
+-   **Control de Acceso según Permisos:** Este es uno de los puntos más fuertes de la arquitectura. En lugar de ser gestionado por el código del servidor, el control de acceso se delega a las **Reglas de Seguridad de Firestore**. Estas reglas actúan como un "firewall" a nivel de base de datos. Permiten definir con extrema granularidad quién puede leer, escribir o borrar cada pieza de información. Por ejemplo, podríamos definir reglas para que un camarero solo pueda modificar los pedidos de sus mesas asignadas, pero no las de otros.
+
+-   **Encriptación de Contraseñas:** El sistema actual utiliza un PIN numérico para simplificar el prototipo. Para una versión de producción, no se implementaría una "encriptación básica", sino que se utilizaría **Firebase Authentication**. Este servicio gestiona todo el ciclo de vida del usuario (registro, inicio de sesión, recuperación de contraseña) de forma profesional y segura, almacenando las contraseñas con hashes criptográficos estándar de la industria (como bcrypt). Esto elimina por completo el riesgo de manejar contraseñas manualmente.
+
+-   **Respaldo Automático de la Base de Datos:** Esta es una funcionalidad nativa de Google Cloud Platform, sobre la que se construye Firebase. Se pueden configurar **copias de seguridad automáticas y periódicas** de la base de datos de Firestore directamente desde la consola de Google Cloud, con políticas de retención personalizables. Esto garantiza la recuperación de datos ante cualquier desastre sin necesidad de desarrollar scripts de respaldo manuales.
