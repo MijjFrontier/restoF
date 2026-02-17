@@ -27,7 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Employee } from '@/lib/data';
 import { upsertEmployee } from '@/lib/actions';
 
-const employeeRoles = ['waiter', 'cashier'] as const;
+const employeeRoles = ['waiter', 'cashier', 'kitchen'] as const;
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -116,6 +116,7 @@ export function EmployeeDialog({ children, employee }: EmployeeDialogProps) {
                         <SelectContent>
                             <SelectItem value="waiter">Camarero</SelectItem>
                             <SelectItem value="cashier">Cajero</SelectItem>
+                            <SelectItem value="kitchen">Cocina</SelectItem>
                         </SelectContent>
                     </Select>
                 )}

@@ -76,17 +76,28 @@ export async function deleteTable(tableId: string) {
 // Order Actions
 export async function updateOrder(tableId: string, newOrder: OrderItem[], waiterName?: string) {
   const tableDocRef = doc(db, 'tables', tableId);
-  
   const table = await getDoc(tableDocRef);
 
   if (table.exists()) {
+    const currentTableData = table.data() as Table;
     const updateData: Partial<Table> = {
         order: newOrder,
-        status: newOrder.length > 0 ? 'occupied' : 'free'
     };
-    if(waiterName) updateData.waiterName = waiterName;
-    if(newOrder.length === 0) updateData.waiterName = '';
 
+    if (newOrder.length > 0) {
+        updateData.status = 'occupied';
+        updateData.orderStatus = 'cooking';
+        // If the order was previously empty, set the timestamp
+        if (currentTableData.order.length === 0) {
+            updateData.orderTimestamp = new Date();
+        }
+        if(waiterName) updateData.waiterName = waiterName;
+    } else {
+        updateData.status = 'free';
+        updateData.waiterName = '';
+        updateData.orderStatus = undefined;
+        updateData.orderTimestamp = undefined;
+    }
 
     await updateDoc(tableDocRef, updateData as any);
     
@@ -98,6 +109,21 @@ export async function updateOrder(tableId: string, newOrder: OrderItem[], waiter
   return { success: false, message: 'Table not found' };
 }
 
+export async function markOrderAsReady(tableId: string) {
+    const tableDocRef = doc(db, 'tables', tableId);
+    const table = await getDoc(tableDocRef);
+
+    if (table.exists()) {
+        await updateDoc(tableDocRef, {
+            orderStatus: 'ready'
+        });
+        revalidatePath('/kitchen');
+        revalidatePath('/waiter');
+        return { success: true };
+    }
+    return { success: false, message: 'Mesa no encontrada.' };
+}
+
 // Payment Actions
 export async function finalizePayment(tableId: string) {
     const tableDocRef = doc(db, 'tables', tableId);
@@ -105,12 +131,15 @@ export async function finalizePayment(tableId: string) {
         await updateDoc(tableDocRef, {
             order: [],
             status: 'free',
-            waiterName: ''
+            waiterName: '',
+            orderStatus: null,
+            orderTimestamp: null
         });
         
         revalidatePath('/waiter');
         revalidatePath('/cashier');
         revalidatePath(`/cashier/table/${tableId}`);
+        revalidatePath('/kitchen');
         
         return { success: true };
     }

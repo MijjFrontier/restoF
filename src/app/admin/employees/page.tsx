@@ -18,6 +18,7 @@ export const dynamic = 'force-dynamic';
 const roleMap = {
   waiter: 'Camarero',
   cashier: 'Cajero',
+  kitchen: 'Cocina',
 };
 
 export default async function EmployeeManagementPage() {

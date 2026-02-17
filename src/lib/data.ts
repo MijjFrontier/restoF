@@ -1,4 +1,4 @@
-export type TableStatus = 'free' | 'occupied' | 'reserved';
+export type TableStatus = 'free' | 'occupied' | 'reserved' | 'ready';
 
 export interface MenuItem {
   id: string;
@@ -18,6 +18,8 @@ export interface Table {
   status: TableStatus;
   order: OrderItem[];
   waiterName?: string;
+  orderStatus?: 'cooking' | 'ready';
+  orderTimestamp?: Date;
 }
 
 export interface Transaction {
@@ -30,7 +32,7 @@ export interface Transaction {
   timestamp: Date; // Firestore handles Timestamps, but Date is fine for client
 }
 
-export type EmployeeRole = 'waiter' | 'cashier';
+export type EmployeeRole = 'waiter' | 'cashier' | 'kitchen';
 
 export interface Employee {
     id: string; // Firestore document ID

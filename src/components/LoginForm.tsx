@@ -42,6 +42,7 @@ interface LoginFormProps {
 const roleMap = {
   waiter: 'Camarero',
   cashier: 'Cajero',
+  kitchen: 'Cocina',
 };
 
 const ADMIN_PIN = "0000"; // Simple hardcoded PIN for admin
@@ -88,6 +89,8 @@ export function LoginForm({ employees }: LoginFormProps) {
             router.push("/waiter");
         } else if (employee.role === "cashier") {
             router.push("/cashier");
+        } else if (employee.role === "kitchen") {
+            router.push("/kitchen");
         }
       } else {
          toast({

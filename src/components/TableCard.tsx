@@ -8,17 +8,32 @@ import { User } from 'lucide-react';
 
 type TableCardProps = {
   table: Table;
-  role: 'waiter' | 'cashier';
+  role: 'waiter' | 'cashier' | 'kitchen';
 };
 
-const statusMap: Record<TableStatus, { text: string; className: string }> = {
+type DisplayStatus = TableStatus | 'ready';
+
+const statusMap: Record<DisplayStatus, { text: string; className: string }> = {
   free: { text: 'Libre', className: 'bg-green-500/20 text-green-700 border-green-500/30' },
   occupied: { text: 'Ocupada', className: 'bg-orange-500/20 text-orange-700 border-orange-500/30' },
   reserved: { text: 'Reservada', className: 'bg-blue-500/20 text-blue-700 border-blue-500/30' },
+  ready: { text: 'Listo', className: 'bg-cyan-500/20 text-cyan-700 border-cyan-500/30 animate-pulse' },
 };
 
 export function TableCard({ table, role }: TableCardProps) {
-  const effectiveStatus = table.order.length > 0 ? 'occupied' : table.status;
+  let effectiveStatus: DisplayStatus = table.order.length > 0 ? 'occupied' : table.status;
+  let description = 'Toca para empezar un pedido';
+
+  if (table.orderStatus === 'ready') {
+    effectiveStatus = 'ready';
+    description = 'Pedido listo para servir';
+  } else if (effectiveStatus === 'occupied') {
+    description = `${table.order.length} artículo(s) en el pedido`;
+  } else if (effectiveStatus === 'reserved') {
+    description = 'Mesa reservada';
+  }
+
+
   const isClickable = role === 'waiter' || (role === 'cashier' && effectiveStatus === 'occupied');
   const LinkWrapper = isClickable ? Link : 'div';
   const linkProps = isClickable ? { href: `/${role}/table/${table.id}` } : {};
@@ -35,7 +50,7 @@ export function TableCard({ table, role }: TableCardProps) {
             <div className='flex-1'>
               <CardTitle className="font-headline text-2xl">{table.name}</CardTitle>
               <CardDescription className="pt-2">
-                {effectiveStatus === 'occupied' ? `${table.order.length} artículo(s) en el pedido` : effectiveStatus === 'free' ? 'Toca para empezar un pedido' : 'Mesa reservada'}
+                {description}
               </CardDescription>
             </div>
             <Badge variant="outline" className={cn("text-sm whitespace-nowrap", statusMap[effectiveStatus].className)}>
@@ -44,7 +59,7 @@ export function TableCard({ table, role }: TableCardProps) {
           </div>
         </CardHeader>
       </LinkWrapper>
-       {effectiveStatus === 'occupied' && table.waiterName && (
+       {effectiveStatus !== 'free' && table.waiterName && (
          <CardContent className="p-4 pt-0 text-sm text-muted-foreground flex items-center">
             <User className="w-4 h-4 mr-2" />
             Atendido por: {table.waiterName}
