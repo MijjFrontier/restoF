@@ -253,3 +253,26 @@ export async function deleteEmployee(employeeId: string) {
     }
     return { success: false, message: 'Empleado no encontrado.' };
 }
+
+export async function changeEmployeePin({ employeeId, oldPin, newPin }: { employeeId: string, oldPin: string, newPin:string }) {
+    if (employeeId === 'admin') {
+        return { success: false, message: 'El PIN del administrador no se puede cambiar desde aquí.' };
+    }
+
+    const employeeDocRef = doc(db, 'employees', employeeId);
+    const employeeDoc = await getDoc(employeeDocRef);
+
+    if (!employeeDoc.exists()) {
+        return { success: false, message: 'Empleado no encontrado.' };
+    }
+
+    const employee = employeeDoc.data() as Employee;
+
+    if (employee.pin !== oldPin) {
+        return { success: false, message: 'El PIN actual es incorrecto.' };
+    }
+
+    await updateDoc(employeeDocRef, { pin: newPin });
+    
+    return { success: true };
+}
