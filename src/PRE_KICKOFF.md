@@ -9,9 +9,20 @@ A continuación se presenta el checklist de validación para la preparación del
 | **CLIENTE**       | El Restaurante (Usuario final del sistema)                                                           |
 | **NOMBRE PROYECTO** | RestoFlow                                                                                            |
 | **SPONSOR - PO**  | Dueño del Restaurante / Gerente de Operaciones                                                       |
-| **JEFE PROYECTO** | [Nombre del Jefe de Proyecto]                                                                        |
 | **FECHA**         | [Fecha actual]                                                                                       |
 | **ESTADO PREKICK OFF** | **APROBADO** (Listo para Kickoff)                                                                    |
+
+<br/>
+
+### Equipo del Proyecto y Roles
+
+| Nombre - Encargados del Proyecto   | Objetivo asignado al proyecto                                                                        |
+| :--------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| Patricia Chumbimune - Scrum Master | Facilitación de ceremonia, eliminación de bloqueos y aseguramiento de agilidad.                         |
+| Mijail Guillem - Backend Developer | Arquitectura de servidores (Node.js), modelado de datos en Firebase y seguridad de API.              |
+| Angel Namay - Frontend Developer   | Implementación de interfaces interactivas y consumo de servicios en tiempo real.                       |
+| Yori Huallpachoque - UI/UX Designer  | Diseño de sistemas de diseño (Design Systems), prototipado y optimización de flujos de usuario.      |
+| Maria C. Malpartida - QA Engineer    | Control de calidad, diseño de planes de prueba (Unitarias/Integración) y gestión de defectos.         |
 
 <br/>
 
