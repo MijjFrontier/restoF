@@ -106,8 +106,8 @@ Este es el ambiente final, estable y seguro que el personal del restaurante util
 
 | HITO / ENTREGABLE                  | ENTREGABLE CLAVE                                                                                               | PORCENTAJE | VALOR |
 | :--------------------------------- | :------------------------------------------------------------------------------------------------------------- | :--------- | :---- |
-| **Inception & Discovery (Análisis)** | Documentación de análisis (Pre-Kickoff, PESTEL, Diccionario de Datos), prototipo inicial y arquitectura definida.  |            |       |
-| **Sprint Zero & Core Development**   | Prototipo funcional con todos los módulos clave desarrollados (Admin, Camarero, Cocina, Cajero).             |            |       |
-| **Integración y QA (Certificación)** | Ciclo de pruebas completo en el ambiente de TEST. Corrección de errores y validación del cliente (UAT).          |            |       |
-| **Go-Live & Marcha Blanca**        | Despliegue en Producción, capacitación del personal, carga de datos reales y soporte durante los primeros días. |            |       |
-| **TOTAL**                          |                                                                                                                | **100%**   |       |
+| **Inception & Discovery (Análisis)** | Documentación de análisis (Pre-Kickoff, PESTEL, Diccionario de Datos), prototipo inicial y arquitectura definida.  | 25%        | 1     |
+| **Sprint Zero & Core Development**   | Prototipo funcional con todos los módulos clave desarrollados (Admin, Camarero, Cocina, Cajero).             | 35%        | 2     |
+| **Integración y QA (Certificación)** | Ciclo de pruebas completo en el ambiente de TEST. Corrección de errores y validación del cliente (UAT).          | 25%        | 1     |
+| **Go-Live & Marcha Blanca**        | Despliegue en Producción, capacitación del personal, carga de datos reales y soporte durante los primeros días. | 15%        | 1     |
+| **TOTAL**                          |                                                                                                                | **100%**   | **5** |
