@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { FC } from 'react';
@@ -49,7 +50,6 @@ const OrderSummary: FC<{
 }> = ({ order, initialOrder, tableStatus, onUpdateItem, isSubmitting, onSubmit }) => {
   const total = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Check if there are real changes compared to the initial load
   const hasChanges = useMemo(() => {
     if (order.length !== initialOrder.length) return true;
     
@@ -144,30 +144,12 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
   const router = useRouter();
   const [waiterName, setWaiterName] = useState<string | null>(null);
 
-  // Keep track of the initial order to detect changes
   const initialOrder = useMemo(() => table.order, [table.id, table.order]);
 
   useEffect(() => {
-    // This runs on the client after hydration
     const name = localStorage.getItem('loggedInEmployeeName');
     setWaiterName(name);
   }, []);
-
-  const handleUpdateServerOrder = useMemo(() => {
-    let timeoutId: NodeJS.Timeout;
-    return (newOrder: OrderItem[]) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(async () => {
-        try {
-          // Silent background sync
-          await updateOrder(table.id, newOrder, waiterName ?? undefined);
-        } catch (error) {
-           console.error("Sync error", error);
-        }
-      }, 1500); // Debounce requests
-    };
-  }, [table.id, waiterName]);
-
 
   const handleUpdateItem = (itemId: string, quantity: number, notes?: string) => {
     const newOrder = [...order];
@@ -179,7 +161,6 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
       newOrder.splice(itemIndex, 1);
     } else {
       const newQuantity = Math.max(0, quantity);
-      // Si reducimos la cantidad por debajo de lo procesado, actualizamos el procesado
       const newProcessedQuantity = Math.min(newOrder[itemIndex].processedQuantity || 0, newQuantity);
       
       newOrder[itemIndex] = { 
@@ -191,7 +172,6 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
     }
     
     setOrder(newOrder);
-    handleUpdateServerOrder(newOrder);
   };
   
   const handleAddToOrder = (itemToAdd: MenuItem) => {
@@ -200,12 +180,10 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
 
     if (existingItemIndex > -1) {
       newOrder[existingItemIndex].quantity += 1;
-      // No tocamos processedQuantity aquí, el backend sabrá que quantity > processedQuantity
     } else {
       newOrder.push({ ...itemToAdd, quantity: 1, processedQuantity: 0, notes: '' });
     }
     setOrder(newOrder);
-    handleUpdateServerOrder(newOrder);
   };
 
   const handleSendToKitchen = () => {
