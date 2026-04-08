@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, MinusCircle, Trash2, Utensils, Beer, Cookie, Soup, Send } from 'lucide-react';
+import { PlusCircle, MinusCircle, Trash2, Utensils, Beer, Cookie, Soup, Send, RefreshCw } from 'lucide-react';
 import { updateOrder } from '@/lib/actions';
 import { Input } from '@/components/ui/input';
 
@@ -41,11 +41,27 @@ const MenuItemCard: FC<{ item: MenuItem; onAddToOrder: (item: MenuItem) => void;
 
 const OrderSummary: FC<{ 
   order: OrderItem[]; 
+  initialOrder: OrderItem[];
+  tableStatus: string;
   onUpdateItem: (itemId: string, quantity: number, notes?: string) => void;
   isSubmitting: boolean;
   onSubmit: () => void;
-}> = ({ order, onUpdateItem, isSubmitting, onSubmit }) => {
+}> = ({ order, initialOrder, tableStatus, onUpdateItem, isSubmitting, onSubmit }) => {
   const total = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  // Check if there are real changes compared to the initial load
+  const hasChanges = useMemo(() => {
+    if (order.length !== initialOrder.length) return true;
+    
+    return order.some(item => {
+      const original = initialOrder.find(o => o.id === item.id);
+      if (!original) return true;
+      return original.quantity !== item.quantity || (original.notes || '') !== (item.notes || '');
+    });
+  }, [order, initialOrder]);
+
+  const buttonText = tableStatus === 'occupied' ? 'Actualizar Pedido' : 'Enviar Pedido a Cocina';
+  const Icon = tableStatus === 'occupied' ? RefreshCw : Send;
 
   return (
     <Card className="h-full flex flex-col">
@@ -91,23 +107,25 @@ const OrderSummary: FC<{
           )}
         </CardContent>
       </ScrollArea>
-      {order.length > 0 && (
-        <CardFooter className="flex-col items-stretch mt-auto p-4 border-t">
-          <Separator className="my-2" />
-          <div className="flex justify-between items-center font-bold text-lg">
-            <span>Total:</span>
-            <span>S/{total.toFixed(2)}</span>
-          </div>
-          <Button onClick={onSubmit} disabled={isSubmitting} className="w-full mt-4">
-            {isSubmitting ? 'Enviando...' : (
-                <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Enviar Pedido a Cocina
-                </>
-            )}
-          </Button>
-        </CardFooter>
-      )}
+      <CardFooter className="flex-col items-stretch mt-auto p-4 border-t">
+        <Separator className="my-2" />
+        <div className="flex justify-between items-center font-bold text-lg">
+          <span>Total:</span>
+          <span>S/{total.toFixed(2)}</span>
+        </div>
+        <Button 
+            onClick={onSubmit} 
+            disabled={isSubmitting || !hasChanges || order.length === 0} 
+            className="w-full mt-4"
+        >
+          {isSubmitting ? 'Enviando...' : (
+              <>
+                  <Icon className="mr-2 h-4 w-4" />
+                  {buttonText}
+              </>
+          )}
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
@@ -119,6 +137,9 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const [waiterName, setWaiterName] = useState<string | null>(null);
+
+  // Keep track of the initial order to detect changes
+  const initialOrder = useMemo(() => table.order, [table.id]);
 
   useEffect(() => {
     // This runs on the client after hydration
@@ -132,30 +153,26 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(async () => {
         try {
+          // Silent background sync
           await updateOrder(table.id, newOrder, waiterName ?? undefined);
         } catch (error) {
-          toast({
-            title: "Error de Sincronización",
-            description: "No se pudieron guardar los últimos cambios en el servidor.",
-            variant: "destructive",
-          });
+           // We don't toast here to avoid annoying the user during rapid typing
+           console.error("Sync error", error);
         }
-      }, 500); // Debounce requests
+      }, 1000); // Debounce requests
     };
-  }, [table.id, toast, waiterName]);
+  }, [table.id, waiterName]);
 
 
   const handleUpdateItem = (itemId: string, quantity: number, notes?: string) => {
     const newOrder = [...order];
     const itemIndex = newOrder.findIndex(item => item.id === itemId);
 
-    if (itemIndex === -1) return; // Should not happen
+    if (itemIndex === -1) return;
 
     if (quantity <= 0) {
-      // Remove item
       newOrder.splice(itemIndex, 1);
     } else {
-      // Update quantity or notes
       newOrder[itemIndex] = { ...newOrder[itemIndex], quantity, notes: notes ?? newOrder[itemIndex].notes };
     }
     
@@ -179,16 +196,16 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
   const handleSendToKitchen = () => {
     startTransition(async () => {
         try {
-            await updateOrder(table.id, order, waiterName ?? undefined); // Final sync before leaving
+            await updateOrder(table.id, order, waiterName ?? undefined);
             toast({
-                title: "Pedido Enviado",
-                description: `El pedido de la ${table.name} ha sido enviado a la cocina.`,
+                title: table.status === 'occupied' ? "Pedido Actualizado" : "Pedido Enviado",
+                description: `Los cambios para la ${table.name} han sido procesados.`,
             });
             router.push('/waiter');
         } catch (error) {
             toast({
                 title: "Error",
-                description: "No se pudo enviar el pedido.",
+                description: "No se pudo actualizar el pedido.",
                 variant: "destructive",
             });
         }
@@ -221,6 +238,8 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
       <div className="lg:col-span-1 h-full">
         <OrderSummary 
           order={order}
+          initialOrder={initialOrder}
+          tableStatus={table.status}
           onUpdateItem={handleUpdateItem}
           isSubmitting={isPending}
           onSubmit={handleSendToKitchen}
