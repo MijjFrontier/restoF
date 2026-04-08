@@ -34,7 +34,7 @@ export function TableCard({ table, role }: TableCardProps) {
   }
 
 
-  const isClickable = role === 'waiter' || (role === 'cashier' && effectiveStatus === 'occupied');
+  const isClickable = role === 'waiter' || (role === 'cashier' && table.order.length > 0);
   const LinkWrapper = isClickable ? Link : 'div';
   const linkProps = isClickable ? { href: `/${role}/table/${table.id}` } : {};
 
