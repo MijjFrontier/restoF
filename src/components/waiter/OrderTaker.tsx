@@ -74,35 +74,41 @@ const OrderSummary: FC<{
             <p className="text-muted-foreground text-center py-8">El pedido está vacío.</p>
           ) : (
             <ul className="space-y-4">
-              {order.map(item => (
-                <li key={item.id}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">S/{item.price.toFixed(2)}</p>
+              {order.map(item => {
+                const isProcessed = (item.processedQuantity || 0) >= item.quantity;
+                return (
+                  <li key={item.id} className={isProcessed ? "opacity-70" : ""}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">
+                            {item.name} 
+                            {isProcessed && <span className="ml-2 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">LISTO</span>}
+                        </p>
+                        <p className="text-sm text-muted-foreground">S/{item.price.toFixed(2)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => onUpdateItem(item.id, item.quantity - 1, item.notes)} disabled={isSubmitting}>
+                          <MinusCircle className="h-4 w-4" />
+                        </Button>
+                        <span className="font-mono w-4 text-center">{item.quantity}</span>
+                        <Button variant="ghost" size="icon" onClick={() => onUpdateItem(item.id, item.quantity + 1, item.notes)} disabled={isSubmitting}>
+                          <PlusCircle className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onUpdateItem(item.id, 0)} disabled={isSubmitting}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => onUpdateItem(item.id, item.quantity - 1, item.notes)} disabled={isSubmitting}>
-                        <MinusCircle className="h-4 w-4" />
-                      </Button>
-                      <span>{item.quantity}</span>
-                      <Button variant="ghost" size="icon" onClick={() => onUpdateItem(item.id, item.quantity + 1, item.notes)} disabled={isSubmitting}>
-                        <PlusCircle className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => onUpdateItem(item.id, 0)} disabled={isSubmitting}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                  <Input 
-                    placeholder="Añadir notas (ej. sin picante)..."
-                    defaultValue={item.notes}
-                    className="mt-2 h-8"
-                    onBlur={(e) => onUpdateItem(item.id, item.quantity, e.target.value)}
-                    disabled={isSubmitting}
-                  />
-                </li>
-              ))}
+                    <Input 
+                      placeholder="Añadir notas (ej. sin picante)..."
+                      defaultValue={item.notes}
+                      className="mt-2 h-8"
+                      onBlur={(e) => onUpdateItem(item.id, item.quantity, e.target.value)}
+                      disabled={isSubmitting}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
@@ -139,7 +145,7 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
   const [waiterName, setWaiterName] = useState<string | null>(null);
 
   // Keep track of the initial order to detect changes
-  const initialOrder = useMemo(() => table.order, [table.id]);
+  const initialOrder = useMemo(() => table.order, [table.id, table.order]);
 
   useEffect(() => {
     // This runs on the client after hydration
@@ -156,10 +162,9 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
           // Silent background sync
           await updateOrder(table.id, newOrder, waiterName ?? undefined);
         } catch (error) {
-           // We don't toast here to avoid annoying the user during rapid typing
            console.error("Sync error", error);
         }
-      }, 1000); // Debounce requests
+      }, 1500); // Debounce requests
     };
   }, [table.id, waiterName]);
 
@@ -173,7 +178,16 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
     if (quantity <= 0) {
       newOrder.splice(itemIndex, 1);
     } else {
-      newOrder[itemIndex] = { ...newOrder[itemIndex], quantity, notes: notes ?? newOrder[itemIndex].notes };
+      const newQuantity = Math.max(0, quantity);
+      // Si reducimos la cantidad por debajo de lo procesado, actualizamos el procesado
+      const newProcessedQuantity = Math.min(newOrder[itemIndex].processedQuantity || 0, newQuantity);
+      
+      newOrder[itemIndex] = { 
+        ...newOrder[itemIndex], 
+        quantity: newQuantity, 
+        processedQuantity: newProcessedQuantity,
+        notes: notes ?? newOrder[itemIndex].notes 
+      };
     }
     
     setOrder(newOrder);
@@ -186,8 +200,9 @@ export function OrderTaker({ table, menuItems }: OrderTakerProps) {
 
     if (existingItemIndex > -1) {
       newOrder[existingItemIndex].quantity += 1;
+      // No tocamos processedQuantity aquí, el backend sabrá que quantity > processedQuantity
     } else {
-      newOrder.push({ ...itemToAdd, quantity: 1, notes: '' });
+      newOrder.push({ ...itemToAdd, quantity: 1, processedQuantity: 0, notes: '' });
     }
     setOrder(newOrder);
     handleUpdateServerOrder(newOrder);

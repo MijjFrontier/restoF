@@ -86,11 +86,21 @@ export async function updateOrder(tableId: string, newOrder: OrderItem[], waiter
 
     if (newOrder.length > 0) {
         updateData.status = 'occupied';
-        updateData.orderStatus = 'cooking';
-        // If the order was previously empty, set the timestamp
-        if (currentTableData.order.length === 0) {
-            updateData.orderTimestamp = new Date();
+        
+        // Determinar si hay artículos nuevos por cocinar
+        const hasUnprocessedItems = newOrder.some(item => item.quantity > (item.processedQuantity || 0));
+        
+        if (hasUnprocessedItems) {
+            updateData.orderStatus = 'cooking';
+            // Si el pedido estaba vacío o era nuevo para cocina, actualizamos el timestamp
+            if (currentTableData.order.length === 0 || currentTableData.orderStatus === 'ready') {
+                updateData.orderTimestamp = new Date();
+            }
+        } else {
+            // Si todo lo que queda ya estaba listo, mantenemos el estado ready
+            updateData.orderStatus = currentTableData.orderStatus === 'ready' ? 'ready' : 'cooking';
         }
+        
         if(waiterName) updateData.waiterName = waiterName;
     } else {
         updateData.status = 'free';
@@ -100,9 +110,7 @@ export async function updateOrder(tableId: string, newOrder: OrderItem[], waiter
     }
 
     await updateDoc(tableDocRef, updateData as any);
-    
     revalidatePath('/', 'layout');
-    
     return { success: true };
   }
   
@@ -114,9 +122,19 @@ export async function markOrderAsReady(tableId: string) {
     const table = await getDoc(tableDocRef);
 
     if (table.exists()) {
+        const currentTableData = table.data() as Table;
+        
+        // Al marcar como listo, todas las cantidades actuales se consideran procesadas
+        const processedOrder = currentTableData.order.map(item => ({
+            ...item,
+            processedQuantity: item.quantity
+        }));
+
         await updateDoc(tableDocRef, {
+            order: processedOrder,
             orderStatus: 'ready'
         });
+        
         revalidatePath('/kitchen');
         revalidatePath('/waiter');
         return { success: true };

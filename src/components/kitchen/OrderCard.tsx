@@ -19,6 +19,12 @@ export function OrderCard({ table }: OrderCardProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  // Solo mostramos los artículos que aún no han sido procesados (preparados)
+  const itemsToPrepare = table.order.filter(item => {
+    const quantityToMake = item.quantity - (item.processedQuantity || 0);
+    return quantityToMake > 0;
+  });
+
   const handleMarkAsReady = () => {
     startTransition(async () => {
       const result = await markOrderAsReady(table.id);
@@ -37,8 +43,10 @@ export function OrderCard({ table }: OrderCardProps) {
     });
   };
 
+  if (itemsToPrepare.length === 0) return null;
+
   return (
-    <Card className="flex flex-col h-full bg-card">
+    <Card className="flex flex-col h-full bg-card border-primary/20">
       <CardHeader>
         <div className="flex justify-between items-center">
             <CardTitle className="font-headline text-2xl">{table.name}</CardTitle>
@@ -57,18 +65,23 @@ export function OrderCard({ table }: OrderCardProps) {
       <ScrollArea className="flex-grow">
         <CardContent>
           <ul className="space-y-3">
-            {table.order.map(item => (
-              <li key={item.id}>
-                <div className="flex justify-between items-baseline">
-                  <span className="font-semibold">{item.name} <span className="font-normal text-muted-foreground">x{item.quantity}</span></span>
-                </div>
-                {item.notes && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 pl-2 border-l-2 border-amber-500/50 ml-1 mt-1">
-                    {item.notes}
-                  </p>
-                )}
-              </li>
-            ))}
+            {itemsToPrepare.map(item => {
+              const quantityToMake = item.quantity - (item.processedQuantity || 0);
+              return (
+                <li key={item.id}>
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-semibold text-lg">
+                        {item.name} <span className="text-primary font-bold ml-1">x{quantityToMake}</span>
+                    </span>
+                  </div>
+                  {item.notes && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 pl-2 border-l-2 border-amber-500/50 ml-1 mt-1">
+                      {item.notes}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </CardContent>
       </ScrollArea>

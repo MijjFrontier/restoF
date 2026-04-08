@@ -9,6 +9,7 @@ export interface MenuItem {
 
 export interface OrderItem extends MenuItem {
   quantity: number;
+  processedQuantity?: number; // Cantidad que ya fue preparada por cocina
   notes?: string;
 }
 
@@ -40,7 +41,3 @@ export interface Employee {
     role: EmployeeRole;
     pin: string;
 }
-
-// All data is now fetched from Firestore.
-// The initial data has been removed from this file.
-// The functions to interact with data are in actions.ts and use Firestore.
