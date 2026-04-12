@@ -11,13 +11,14 @@ type TableCardProps = {
   role: 'waiter' | 'cashier' | 'kitchen';
 };
 
-type DisplayStatus = TableStatus | 'ready';
+type DisplayStatus = TableStatus | 'ready' | 'preparing';
 
 const statusMap: Record<DisplayStatus, { text: string; className: string }> = {
   free: { text: 'Libre', className: 'bg-green-500/20 text-green-700 border-green-500/30' },
   occupied: { text: 'Ocupada', className: 'bg-orange-500/20 text-orange-700 border-orange-500/30' },
   reserved: { text: 'Reservada', className: 'bg-blue-500/20 text-blue-700 border-blue-500/30' },
-  ready: { text: 'Listo', className: 'bg-cyan-500/20 text-cyan-700 border-cyan-500/30 animate-pulse' },
+  preparing: { text: 'En preparación', className: 'bg-blue-500/20 text-blue-700 border-blue-500/30 animate-pulse' },
+  ready: { text: 'Listo', className: 'bg-cyan-500/20 text-cyan-700 border-cyan-500/30 animate-bounce' },
 };
 
 export function TableCard({ table, role }: TableCardProps) {
@@ -27,6 +28,9 @@ export function TableCard({ table, role }: TableCardProps) {
   if (table.orderStatus === 'ready') {
     effectiveStatus = 'ready';
     description = 'Pedido listo para servir';
+  } else if (table.orderStatus === 'preparing') {
+    effectiveStatus = 'preparing';
+    description = 'Cocina preparando el pedido';
   } else if (effectiveStatus === 'occupied') {
     description = `${table.order.length} artículo(s) en el pedido`;
   } else if (effectiveStatus === 'reserved') {

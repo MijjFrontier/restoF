@@ -117,6 +117,22 @@ export async function updateOrder(tableId: string, newOrder: OrderItem[], waiter
   return { success: false, message: 'Table not found' };
 }
 
+export async function markOrderAsPreparing(tableId: string) {
+    const tableDocRef = doc(db, 'tables', tableId);
+    const table = await getDoc(tableDocRef);
+
+    if (table.exists()) {
+        await updateDoc(tableDocRef, {
+            orderStatus: 'preparing'
+        });
+        
+        revalidatePath('/kitchen');
+        revalidatePath('/waiter');
+        return { success: true };
+    }
+    return { success: false, message: 'Mesa no encontrada.' };
+}
+
 export async function markOrderAsReady(tableId: string) {
     const tableDocRef = doc(db, 'tables', tableId);
     const table = await getDoc(tableDocRef);

@@ -19,7 +19,7 @@ export interface Table {
   status: TableStatus;
   order: OrderItem[];
   waiterName?: string;
-  orderStatus?: 'cooking' | 'ready';
+  orderStatus?: 'cooking' | 'preparing' | 'ready';
   orderTimestamp?: Date;
 }
 

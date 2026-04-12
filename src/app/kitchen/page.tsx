@@ -8,8 +8,17 @@ export default async function KitchenDashboard() {
   const allTables = await getTables();
 
   const activeOrders = allTables
-    .filter(table => table.status === 'occupied' && table.orderStatus === 'cooking' && table.order.length > 0)
-    .sort((a, b) => (a.orderTimestamp?.getTime() ?? 0) - (b.orderTimestamp?.getTime() ?? 0));
+    .filter(table => 
+        table.status === 'occupied' && 
+        (table.orderStatus === 'cooking' || table.orderStatus === 'preparing') && 
+        table.order.length > 0
+    )
+    .sort((a, b) => {
+        // Primero las que están en preparación, luego por tiempo
+        if (a.orderStatus === 'preparing' && b.orderStatus !== 'preparing') return -1;
+        if (a.orderStatus !== 'preparing' && b.orderStatus === 'preparing') return 1;
+        return (a.orderTimestamp?.getTime() ?? 0) - (b.orderTimestamp?.getTime() ?? 0);
+    });
 
   return (
     <div className="min-h-screen bg-background">
