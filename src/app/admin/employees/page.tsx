@@ -61,7 +61,7 @@ export default async function EmployeeManagementPage() {
               <TableRow key={employee.id}>
                 <TableCell className="font-medium">{employee.name}</TableCell>
                 <TableCell>{roleMap[employee.role]}</TableCell>
-                <TableCell className="font-mono">{'*'.repeat(employee.pin.length)}</TableCell>
+                <TableCell className="font-mono">{'*'.repeat(String(employee.pin).length)}</TableCell>
                 <TableCell className="flex justify-center items-center gap-2">
                   <EmployeeDialog employee={employee}>
                     <Button variant="outline" size="sm">Editar</Button>

@@ -39,5 +39,5 @@ export interface Employee {
     id: string; // Firestore document ID
     name: string;
     role: EmployeeRole;
-    pin: string;
+    pin: number; // Changed to number
 }

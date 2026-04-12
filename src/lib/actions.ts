@@ -300,16 +300,22 @@ export async function getEmployees() {
     return employeeSnapshot.docs.map(d => docToDataType<Employee>(d));
 }
 
-export async function upsertEmployee(data: Omit<Employee, 'id'> & { id?: string }) {
+export async function upsertEmployee(data: { name: string; pin: string; role: EmployeeRole; id?: string }) {
     let updatedEmployee: Employee | undefined;
+    
+    // Convert pin to number for database storage
+    const employeeToSave = {
+        ...data,
+        pin: parseInt(data.pin, 10)
+    };
 
     if (data.id) {
         const employeeDocRef = doc(db, 'employees', data.id);
-        await updateDoc(employeeDocRef, data as any);
-        updatedEmployee = { ...data, id: data.id } as Employee;
+        await updateDoc(employeeDocRef, employeeToSave as any);
+        updatedEmployee = { ...employeeToSave, id: data.id } as Employee;
     } else {
-        const docRef = await addDoc(collection(db, 'employees'), data);
-        updatedEmployee = { ...data, id: docRef.id } as Employee;
+        const docRef = await addDoc(collection(db, 'employees'), employeeToSave);
+        updatedEmployee = { ...employeeToSave, id: docRef.id } as Employee;
     }
 
     revalidatePath('/admin/employees');
@@ -347,11 +353,11 @@ export async function changeEmployeePin({ employeeId, oldPin, newPin }: { employ
 
     const employee = employeeDoc.data() as Employee;
 
-    if (employee.pin !== oldPin) {
+    if (employee.pin !== parseInt(oldPin, 10)) {
         return { success: false, message: 'El PIN actual es incorrecto.' };
     }
 
-    await updateDoc(employeeDocRef, { pin: newPin });
+    await updateDoc(employeeDocRef, { pin: parseInt(newPin, 10) });
     
     return { success: true };
 }

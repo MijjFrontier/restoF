@@ -78,9 +78,10 @@ export function LoginForm({ employees }: LoginFormProps) {
     setIsLoading(true);
     
     const employee = employees.find(emp => emp.id === selectedEmployeeId);
+    const inputPinNumber = parseInt(pin, 10);
 
     setTimeout(() => {
-      if (employee && employee.pin === pin) {
+      if (employee && employee.pin === inputPinNumber) {
         // Store user info in localStorage
         localStorage.setItem('loggedInEmployeeId', employee.id);
         localStorage.setItem('loggedInEmployeeName', employee.name);

@@ -32,7 +32,10 @@ const employeeRoles = ['waiter', 'cashier', 'kitchen'] as const;
 const formSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres." }),
-  pin: z.string().min(4, { message: "El PIN debe tener al menos 4 dígitos." }).max(8, { message: "El PIN no puede tener más de 8 dígitos."}),
+  pin: z.string()
+    .regex(/^\d+$/, "El PIN debe contener solo números.")
+    .min(4, { message: "El PIN debe tener al menos 4 dígitos." })
+    .max(8, { message: "El PIN no puede tener más de 8 dígitos."}),
   role: z.enum(employeeRoles, {
     required_error: "Debes seleccionar un rol.",
   }),
@@ -55,7 +58,7 @@ export function EmployeeDialog({ children, employee }: EmployeeDialogProps) {
     defaultValues: {
       id: employee?.id,
       name: employee?.name ?? '',
-      pin: employee?.pin ?? '',
+      pin: employee?.pin ? String(employee.pin) : '',
       role: employee?.role,
     },
   });
