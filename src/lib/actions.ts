@@ -72,6 +72,26 @@ export async function deleteTable(tableId: string) {
     return { success: false, message: 'Mesa no encontrada.' };
 }
 
+export async function toggleTableReservation(tableId: string) {
+    const tableDocRef = doc(db, 'tables', tableId);
+    const tableDoc = await getDoc(tableDocRef);
+
+    if (tableDoc.exists()) {
+        const tableData = tableDoc.data() as Table;
+        const newStatus = tableData.status === 'reserved' ? 'free' : 'reserved';
+        
+        if (tableData.status !== 'free' && tableData.status !== 'reserved') {
+            return { success: false, message: 'No se puede reservar una mesa ocupada.' };
+        }
+
+        await updateDoc(tableDocRef, { status: newStatus });
+        revalidatePath('/waiter');
+        revalidatePath('/cashier');
+        return { success: true, newStatus };
+    }
+    return { success: false, message: 'Mesa no encontrada.' };
+}
+
 
 // Order Actions
 export async function updateOrder(tableId: string, newOrder: OrderItem[], waiterName?: string) {
@@ -87,17 +107,14 @@ export async function updateOrder(tableId: string, newOrder: OrderItem[], waiter
     if (newOrder.length > 0) {
         updateData.status = 'occupied';
         
-        // Determinar si hay artículos nuevos por cocinar
         const hasUnprocessedItems = newOrder.some(item => item.quantity > (item.processedQuantity || 0));
         
         if (hasUnprocessedItems) {
             updateData.orderStatus = 'cooking';
-            // Si el pedido estaba vacío o era nuevo para cocina, actualizamos el timestamp
             if (currentTableData.order.length === 0 || currentTableData.orderStatus === 'ready') {
                 updateData.orderTimestamp = new Date();
             }
         } else {
-            // Si todo lo que queda ya estaba listo, mantenemos el estado ready
             updateData.orderStatus = currentTableData.orderStatus === 'ready' ? 'ready' : 'cooking';
         }
         
@@ -140,7 +157,6 @@ export async function markOrderAsReady(tableId: string) {
     if (table.exists()) {
         const currentTableData = table.data() as Table;
         
-        // Al marcar como listo, todas las cantidades actuales se consideran procesadas
         const processedOrder = currentTableData.order.map(item => ({
             ...item,
             processedQuantity: item.quantity

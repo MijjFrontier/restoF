@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardFooter, CardContent }
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { DeleteTableButton } from './DeleteTableButton';
+import { ReserveTableButton } from './ReserveTableButton';
 import { User } from 'lucide-react';
 
 type TableCardProps = {
@@ -63,15 +64,24 @@ export function TableCard({ table, role }: TableCardProps) {
           </div>
         </CardHeader>
       </LinkWrapper>
-       {effectiveStatus !== 'free' && table.waiterName && (
+       {effectiveStatus !== 'free' && effectiveStatus !== 'reserved' && table.waiterName && (
          <CardContent className="p-4 pt-0 text-sm text-muted-foreground flex items-center">
             <User className="w-4 h-4 mr-2" />
             Atendido por: {table.waiterName}
          </CardContent>
        )}
       {role === 'waiter' && (
-        <CardFooter className="p-2 pt-0 mt-auto">
-          <DeleteTableButton tableId={table.id} tableName={table.name} isEnabled={effectiveStatus === 'free'} />
+        <CardFooter className="p-2 pt-0 mt-auto flex flex-col gap-1">
+          <ReserveTableButton 
+            tableId={table.id} 
+            isReserved={effectiveStatus === 'reserved'} 
+            isEnabled={effectiveStatus === 'free'} 
+          />
+          <DeleteTableButton 
+            tableId={table.id} 
+            tableName={table.name} 
+            isEnabled={effectiveStatus === 'free'} 
+          />
         </CardFooter>
       )}
     </Card>
