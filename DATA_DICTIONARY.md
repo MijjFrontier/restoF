@@ -2,73 +2,68 @@
 
 Este documento sirve como un diccionario de datos centralizado para el sistema RestoFlow. Describe en detalle cada una de las entidades de datos, sus atributos, tipos y el propósito que cumplen dentro de la aplicación.
 
-La base de datos del proyecto está implementada en **Firebase Firestore**, una base de datos NoSQL. Las entidades de datos que se describen a continuación se corresponden directamente con las "colecciones" de documentos en Firestore.
+La base de datos del proyecto está implementada en **Firebase Firestore** (NoSQL).
 
 ---
 
 ## 1. Entidad: `employees` (Empleados)
+Almacena la información del personal autorizado para acceder al sistema.
 
-Esta colección almacena la información de todos los empleados del restaurante que pueden acceder al sistema.
-
-| Campo (Field) | Tipo de Dato | Descripción                                                               | Ejemplo                                      |
-| :------------ | :----------- | :------------------------------------------------------------------------ | :------------------------------------------- |
-| `id`          | `string`     | Identificador único del documento, generado automáticamente por Firestore. | ` "2x5tF...gH9s"`                            |
-| `name`        | `string`     | Nombre completo del empleado.                                             | `"Juan Pérez"`                               |
-| `role`        | `string`     | Rol del empleado en el sistema. Define a qué interfaz tiene acceso.        | `"waiter"`, `"cashier"`, `"kitchen"`         |
-| `pin`         | `number`     | PIN numérico de 4 a 8 dígitos para el inicio de sesión.                   | `1234`                                       |
+| Campo (Field) | Tipo de Dato | Requerido | Descripción | Ejemplo |
+| :--- | :--- | :---: | :--- | :--- |
+| `id` | `string` | Sí | ID único generado por Firestore. | `"2x5tF...gH9s"` |
+| `name` | `string` | Sí | Nombre completo del empleado. | `"Juan Pérez"` |
+| `role` | `enum` | Sí | Rol: `waiter`, `cashier`, `kitchen`. | `"waiter"` |
+| `pin` | `number` | Sí | PIN numérico (4-8 dígitos) para login. | `1234` |
 
 ---
 
 ## 2. Entidad: `menu` (Artículos del Menú)
+Catálogo de platos y bebidas ofrecidos por el restaurante.
 
-Esta colección contiene todos los productos (platos y bebidas) que el restaurante ofrece.
-
-| Campo (Field) | Tipo de Dato | Descripción                                                               | Ejemplo                                      |
-| :------------ | :----------- | :------------------------------------------------------------------------ | :------------------------------------------- |
-| `id`          | `string`     | Identificador único del documento, generado automáticamente por Firestore. | ` "a9B...kLpM"`                              |
-| `name`        | `string`     | Nombre del plato o bebida.                                                | `"Lomo Saltado"`                             |
-| `price`       | `number`     | Precio de venta del artículo en la moneda local (Soles).                  | `35.50`                                      |
-| `category`    | `string`     | Categoría a la que pertenece el artículo para organizar el menú.          | `"Platos Principales"`, `"Bebidas"`, etc.    |
+| Campo (Field) | Tipo de Dato | Requerido | Descripción | Ejemplo |
+| :--- | :--- | :---: | :--- | :--- |
+| `id` | `string` | Sí | ID único generado por Firestore. | `"a9B...kLpM"` |
+| `name` | `string` | Sí | Nombre del plato o bebida. | `"Lomo Saltado"` |
+| `price` | `number` | Sí | Precio de venta en Soles (S/). | `35.50` |
+| `category` | `enum` | Sí | Categoría: `Entradas`, `Platos Principales`, etc. | `"Platos Principales"` |
 
 ---
 
 ## 3. Entidad: `tables` (Mesas)
+Gestión del estado operativo del salón en tiempo real.
 
-Esta es la colección principal que gestiona el estado operativo del restaurante. Cada documento representa una mesa.
+| Campo (Field) | Tipo de Dato | Requerido | Descripción | Ejemplo |
+| :--- | :--- | :---: | :--- | :--- |
+| `id` | `string` | Sí | ID único generado por Firestore. | `"m3sA...t7yU"` |
+| `name` | `string` | Sí | Identificador visual de la mesa. | `"Mesa 5"` |
+| `status` | `enum` | Sí | Estado base: `free`, `occupied`, `reserved`. | `"occupied"` |
+| `waiterName` | `string` | No | Nombre del camarero que atiende. | `"Ana Gómez"` |
+| `order` | `array` | Sí | Lista de objetos `OrderItem`. | `[...]` |
+| `orderStatus`| `enum` | No | Estado cocina: `cooking`, `preparing`, `ready`. | `"preparing"` |
+| `orderTimestamp`| `timestamp`| No | Hora en que se envió el pedido original. | `2024-05-21...` |
 
-| Campo (Field)       | Tipo de Dato        | Descripción                                                                                                | Ejemplo                                                               |
-| :------------------ | :------------------ | :--------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------- |
-| `id`                | `string`            | Identificador único del documento, generado automáticamente por Firestore.                                    | `"m3sA...t7yU"`                                                       |
-| `name`              | `string`            | Nombre o número identificador de la mesa.                                                                  | `"Mesa 5"`                                                            |
-| `status`            | `string`            | Estado base de la mesa: `free` (libre), `occupied` (ocupada), `reserved` (reservada).                      | `"occupied"`                                                          |
-| `order`             | `array` (de `OrderItem`) | Un arreglo de objetos que representa el pedido actual de la mesa.                                         | `[{ id: "a9B...", name: "Lomo Saltado", price: 35.50, quantity: 2, processedQuantity: 1 }]` |
-| `waiterName`        | `string` (opcional) | Nombre del camarero que está atendiendo la mesa.                                                           | `"Ana Gómez"`                                                         |
-| `orderStatus`       | `string` (opcional) | Estado del pedido en la cocina: `cooking` (pendiente), `preparing` (en preparación) o `ready` (listo).     | `"preparing"`                                                         |
-| `orderTimestamp`    | `Timestamp` (Fecha) | Marca de tiempo que indica cuándo se envió el pedido original a la cocina.                                  | `2024-05-21T14:30:00Z`                                                |
-
-#### Sub-entidad: `OrderItem` (dentro de `tables.order`)
-
-| Campo (Field)       | Tipo de Dato | Descripción                                                                       | Ejemplo             |
-| :------------------ | :----------- | :-------------------------------------------------------------------------------- | :------------------ |
-| `id`                | `string`     | El ID del artículo, copiado de la colección `menu`.                               | `"a9B...kLpM"`      |
-| `name`              | `string`     | Nombre del artículo.                                                              | `"Lomo Saltado"`    |
-| `price`             | `number`     | Precio unitario del artículo.                                                     | `35.50`             |
-| `quantity`          | `number`     | Cantidad total solicitada de este artículo.                                       | `2`                 |
-| `processedQuantity` | `number`     | Cantidad que ya ha sido preparada y marcada como "Lista" por la cocina.           | `1`                 |
-| `notes`             | `string`     | Notas o instrucciones especiales para la cocina.                                  | `"Sin cebolla"`     |
+### Sub-entidad: `OrderItem` (Dentro de `tables.order`)
+| Campo | Tipo | Requerido | Descripción |
+| :--- | :--- | :---: | :--- |
+| `id` | `string` | Sí | ID referencial del menú. |
+| `name` | `string` | Sí | Nombre del artículo al momento del pedido. |
+| `price` | `number` | Sí | Precio unitario aplicado. |
+| `quantity` | `number` | Sí | Cantidad total solicitada. |
+| `processedQuantity` | `number` | No | Cantidad ya preparada por la cocina. |
+| `notes` | `string` | No | Instrucciones especiales (ej. "Sin sal"). |
 
 ---
 
 ## 4. Entidad: `transactions` (Transacciones)
+Historial de pagos procesados para reportes y cierre de caja.
 
-Esta colección guarda un registro histórico de todos los pagos que se han procesado.
-
-| Campo (Field)   | Tipo de Dato        | Descripción                                                               | Ejemplo                                                              |
-| :-------------- | :------------------ | :------------------------------------------------------------------------ | :------------------------------------------------------------------- |
-| `id`            | `string`            | Identificador único del documento, generado automáticamente por Firestore. | `"T5r...W8qP"`                                                       |
-| `tableId`       | `string`            | El ID de la mesa donde se realizó la transacción.                         | `"m3sA...t7yU"`                                                      |
-| `tableName`     | `string`            | El nombre de la mesa en ese momento.                                      | `"Mesa 5"`                                                           |
-| `order`         | `array` (de `OrderItem`) | Una copia del pedido que fue pagado.                                      | `[{ id: "a9B...", name: "Lomo Saltado", total: 71.00 }]`             |
-| `total`         | `number`            | El monto total que se pagó en esta transacción.                           | `71.00`                                                              |
-| `paymentMethod` | `string`            | El método de pago utilizado (`Efectivo`, `Tarjeta`, `Yape`, `Plin`).       | `"Yape"`                                                             |
-| `timestamp`     | `Timestamp` (Fecha) | La fecha y hora exactas en que se procesó el pago.                        | `2024-05-21T15:10:00Z`                                               |
+| Campo (Field) | Tipo de Dato | Requerido | Descripción | Ejemplo |
+| :--- | :--- | :---: | :--- | :--- |
+| `id` | `string` | Sí | ID único de la transacción. | `"T5r...W8qP"` |
+| `tableId` | `string` | Sí | ID de la mesa de origen. | `"m3sA...t7yU"` |
+| `tableName` | `string` | Sí | Nombre de la mesa al pagar. | `"Mesa 5"` |
+| `total` | `number` | Sí | Monto total recaudado. | `71.00` |
+| `paymentMethod`| `string` | Sí | Método: `Efectivo`, `Tarjeta`, `Yape`, `Plin`. | `"Yape"` |
+| `timestamp` | `timestamp` | Sí | Fecha y hora exacta del pago. | `2024-05-21...` |
+| `order` | `array` | Sí | Copia del pedido final pagado. | `[...]` |
