@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -31,8 +30,9 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, Shield, User } from "lucide-react";
+import { LogIn, Shield, User, AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { Employee } from "@/lib/data";
 
 interface LoginFormProps {
@@ -45,7 +45,9 @@ const roleMap = {
   kitchen: 'Cocina',
 };
 
-const ADMIN_PIN = "0000"; // Simple hardcoded PIN for admin
+const ADMIN_PIN = "0000"; 
+const MAX_ATTEMPTS = 3;
+const LOCKOUT_DURATION = 30; // seconds
 
 export function LoginForm({ employees }: LoginFormProps) {
   const router = useRouter();
@@ -55,21 +57,32 @@ export function LoginForm({ employees }: LoginFormProps) {
   const [adminPin, setAdminPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
+  
+  // Lockout state
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTimer, setLockoutTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (lockoutTimer > 0) {
+      interval = setInterval(() => {
+        setLockoutTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (lockoutTimer === 0 && failedAttempts >= MAX_ATTEMPTS) {
+        setFailedAttempts(0);
+    }
+    return () => clearInterval(interval);
+  }, [lockoutTimer, failedAttempts]);
 
   const handleEmployeeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedEmployeeId) {
+    
+    if (lockoutTimer > 0) return;
+
+    if (!selectedEmployeeId || !pin) {
       toast({
         title: "Error de Validación",
-        description: "Por favor, selecciona un empleado.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!pin) {
-       toast({
-        title: "Error de Validación",
-        description: "Por favor, ingresa tu PIN.",
+        description: "Por favor, selecciona un usuario e ingresa tu PIN.",
         variant: "destructive",
       });
       return;
@@ -82,9 +95,9 @@ export function LoginForm({ employees }: LoginFormProps) {
 
     setTimeout(() => {
       if (employee && employee.pin === inputPinNumber) {
-        // Store user info in localStorage
         localStorage.setItem('loggedInEmployeeId', employee.id);
         localStorage.setItem('loggedInEmployeeName', employee.name);
+        setFailedAttempts(0);
 
         if (employee.role === "waiter") {
             router.push("/waiter");
@@ -94,11 +107,23 @@ export function LoginForm({ employees }: LoginFormProps) {
             router.push("/kitchen");
         }
       } else {
-         toast({
-            title: "Error de Autenticación",
-            description: "PIN incorrecto. Por favor, inténtalo de nuevo.",
-            variant: "destructive",
-        });
+         const newAttempts = failedAttempts + 1;
+         setFailedAttempts(newAttempts);
+         
+         if (newAttempts >= MAX_ATTEMPTS) {
+             setLockoutTimer(LOCKOUT_DURATION);
+             toast({
+                title: "Acceso Bloqueado",
+                description: `Demasiados intentos fallidos. Inténtalo de nuevo en ${LOCKOUT_DURATION} segundos.`,
+                variant: "destructive",
+            });
+         } else {
+             toast({
+                title: "Error de Autenticación",
+                description: `PIN incorrecto. Intentos restantes: ${MAX_ATTEMPTS - newAttempts}`,
+                variant: "destructive",
+            });
+         }
       }
       setIsLoading(false);
     }, 500);
@@ -106,134 +131,159 @@ export function LoginForm({ employees }: LoginFormProps) {
   
   const handleAdminSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockoutTimer > 0) return;
+
     setIsLoading(true);
     if (adminPin === ADMIN_PIN) {
-        toast({
-            title: "Acceso Concedido",
-            description: "Bienvenido, Administrador.",
-        });
         localStorage.setItem('loggedInEmployeeId', 'admin');
         localStorage.setItem('loggedInEmployeeName', 'Admin');
+        setFailedAttempts(0);
         router.push("/admin");
     } else {
-        toast({
-            title: "Acceso Denegado",
-            description: "El PIN de administrador es incorrecto.",
-            variant: "destructive",
-        });
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+
+        if (newAttempts >= MAX_ATTEMPTS) {
+            setLockoutTimer(LOCKOUT_DURATION);
+            setIsAdminDialogOpen(false);
+            toast({
+                title: "Acceso Bloqueado",
+                description: "PIN de administrador incorrecto. Bloqueo temporal activado.",
+                variant: "destructive",
+            });
+        } else {
+            toast({
+                title: "Acceso Denegado",
+                description: `PIN incorrecto. Intentos restantes: ${MAX_ATTEMPTS - newAttempts}`,
+                variant: "destructive",
+            });
+        }
     }
     setIsLoading(false);
     setAdminPin("");
-    setIsAdminDialogOpen(false);
   }
 
   return (
-    <Card className="w-full max-w-sm shadow-lg">
-        <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-headline">Bienvenido</CardTitle>
-            <CardDescription>
-                Ingresa con tu usuario y PIN para gestionar tu turno.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="grid gap-4">
-                 <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
-                    <DialogTrigger asChild>
-                         <Button variant="outline">
-                            <Shield className="mr-2 h-4 w-4" />
-                            Ingresar como Administrador
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                        <form onSubmit={handleAdminSubmit}>
-                            <DialogHeader>
-                                <DialogTitle>Acceso de Administrador</DialogTitle>
-                                <DialogDescription>
-                                    Ingresa el PIN de administrador para continuar.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="flex items-center space-x-2 my-4">
-                               <div className="grid flex-1 gap-2">
-                                    <Label htmlFor="admin-pin" className="sr-only">
-                                        PIN de Administrador
-                                    </Label>
-                                    <Input
-                                        id="admin-pin"
-                                        type="password"
-                                        placeholder="••••"
-                                        value={adminPin}
-                                        onChange={(e) => setAdminPin(e.target.value)}
-                                    />
+    <div className="w-full max-w-sm flex flex-col gap-4">
+        {lockoutTimer > 0 && (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Bloqueo Temporal</AlertTitle>
+                <AlertDescription>
+                    Demasiados intentos fallidos. Por seguridad, espera {lockoutTimer} segundos.
+                </AlertDescription>
+            </Alert>
+        )}
+
+        <Card className="shadow-lg">
+            <CardHeader className="text-center">
+                <CardTitle className="text-3xl font-headline">Bienvenido</CardTitle>
+                <CardDescription>
+                    Ingresa con tu usuario y PIN para gestionar tu turno.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid gap-4">
+                    <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" disabled={lockoutTimer > 0}>
+                                <Shield className="mr-2 h-4 w-4" />
+                                Ingresar como Administrador
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <form onSubmit={handleAdminSubmit}>
+                                <DialogHeader>
+                                    <DialogTitle>Acceso de Administrador</DialogTitle>
+                                    <DialogDescription>
+                                        Ingresa el PIN de administrador para continuar.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="flex items-center space-x-2 my-4">
+                                <div className="grid flex-1 gap-2">
+                                        <Label htmlFor="admin-pin" className="sr-only">
+                                            PIN de Administrador
+                                        </Label>
+                                        <Input
+                                            id="admin-pin"
+                                            type="password"
+                                            placeholder="••••"
+                                            value={adminPin}
+                                            onChange={(e) => setAdminPin(e.target.value)}
+                                            autoComplete="off"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            <DialogFooter className="sm:justify-end">
-                                <DialogClose asChild>
-                                    <Button type="button" variant="secondary">
-                                        Cancelar
+                                <DialogFooter className="sm:justify-end">
+                                    <DialogClose asChild>
+                                        <Button type="button" variant="secondary">
+                                            Cancelar
+                                        </Button>
+                                    </DialogClose>
+                                    <Button type="submit" disabled={isLoading || lockoutTimer > 0}>
+                                        {isLoading ? "Verificando..." : "Verificar"}
                                     </Button>
-                                </DialogClose>
-                                 <Button type="submit" disabled={isLoading}>
-                                    {isLoading ? "Verificando..." : "Verificar"}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                 </Dialog>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
 
-                <div className="relative">
-                    <Separator />
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                        O inicia sesión como empleado
-                        </span>
+                    <div className="relative">
+                        <Separator />
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                            O inicia sesión como empleado
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <form onSubmit={handleEmployeeSubmit} className="grid gap-4 mt-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="employee">Empleado</Label>
-                    <Select onValueChange={setSelectedEmployeeId} value={selectedEmployeeId}>
-                    <SelectTrigger id="employee" className="w-full">
-                         <SelectValue placeholder={
-                            <div className="flex items-center">
-                                <User className="mr-2 h-4 w-4" />
-                                Selecciona tu usuario
-                            </div>
-                        } />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {employees.map(employee => (
-                            <SelectItem key={employee.id} value={employee.id}>
-                               {employee.name} <span className="text-muted-foreground ml-2">({roleMap[employee.role]})</span>
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                    </Select>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="pin">PIN</Label>
-                    <Input
-                    id="pin"
-                    type="password"
-                    placeholder="••••"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                    />
-                </div>
-                 <Button type="submit" className="w-full" disabled={isLoading || !selectedEmployeeId || !pin}>
-                    {isLoading ? "Ingresando..." : (
-                    <>
-                        <LogIn className="mr-2 h-4 w-4" />
-                        Ingresar
-                    </>
-                    )}
-                </Button>
-            </form>
-        </CardContent>
-    </Card>
+                <form onSubmit={handleEmployeeSubmit} className="grid gap-4 mt-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="employee">Empleado</Label>
+                        <Select onValueChange={setSelectedEmployeeId} value={selectedEmployeeId}>
+                        <SelectTrigger id="employee" className="w-full">
+                            <SelectValue placeholder={
+                                <div className="flex items-center">
+                                    <User className="mr-2 h-4 w-4" />
+                                    Selecciona tu usuario
+                                </div>
+                            } />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {employees.map(employee => (
+                                <SelectItem key={employee.id} value={employee.id}>
+                                {employee.name} <span className="text-muted-foreground ml-2">({roleMap[employee.role]})</span>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="pin">PIN</Label>
+                        <Input
+                        id="pin"
+                        type="password"
+                        placeholder="••••"
+                        value={pin}
+                        onChange={(e) => setPin(e.target.value)}
+                        autoComplete="off"
+                        />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading || !selectedEmployeeId || !pin || lockoutTimer > 0}>
+                        {isLoading ? "Ingresando..." : (
+                        <>
+                            <LogIn className="mr-2 h-4 w-4" />
+                            Ingresar
+                        </>
+                        )}
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
+    </div>
   );
 }
