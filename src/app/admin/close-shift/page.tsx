@@ -1,13 +1,17 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { getTransactions } from '@/lib/actions';
+import { getTransactions, getTables } from '@/lib/actions';
 import { CloseShiftAdminClientPage } from '@/components/admin/CloseShiftAdminClientPage';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminCloseShiftPage() {
   const currentTransactions = await getTransactions();
+  const allTables = await getTables();
+  
+  // Contamos las mesas que están ocupadas o tienen pedidos activos
+  const occupiedTablesCount = allTables.filter(t => t.status === 'occupied' || t.order.length > 0).length;
 
   return (
     <div>
@@ -23,7 +27,10 @@ export default async function AdminCloseShiftPage() {
                 <p className="text-muted-foreground">Resumen de todas las transacciones pagadas en el turno actual.</p>
             </div>
         </div>
-        <CloseShiftAdminClientPage transactions={currentTransactions} />
+        <CloseShiftAdminClientPage 
+          transactions={currentTransactions} 
+          occupiedTablesCount={occupiedTablesCount} 
+        />
     </div>
   );
 }

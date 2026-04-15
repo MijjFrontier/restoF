@@ -5,17 +5,19 @@ import * as XLSX from 'xlsx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Download, XCircle, ArrowLeft } from 'lucide-react';
+import { Download, XCircle, AlertTriangle } from 'lucide-react';
 import { clearTransactions } from '@/lib/actions';
 import { format } from 'date-fns';
 import { useTransition } from 'react';
 import type { Transaction } from '@/lib/data';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CloseShiftAdminClientPageProps {
   transactions: Transaction[];
+  occupiedTablesCount: number;
 }
 
-export function CloseShiftAdminClientPage({ transactions }: CloseShiftAdminClientPageProps) {
+export function CloseShiftAdminClientPage({ transactions, occupiedTablesCount }: CloseShiftAdminClientPageProps) {
   const [isPending, startTransition] = useTransition();
 
   const totalSales = transactions.reduce((sum, tx) => sum + tx.total, 0);
@@ -56,19 +58,37 @@ export function CloseShiftAdminClientPage({ transactions }: CloseShiftAdminClien
     });
   }
 
+  const canCloseShift = occupiedTablesCount === 0;
+
   return (
     <>
-        <div className="flex justify-end items-center mb-6 gap-4">
-            <Button variant="outline" onClick={handleExport} disabled={transactions.length === 0}>
-                <Download className="mr-2 h-4 w-4" />
-                Exportar Reporte
-            </Button>
-            <form action={handleClearTransactions}>
-                <Button variant="destructive" type="submit" disabled={isPending}>
-                    <XCircle className="mr-2 h-4 w-4" />
-                    {isPending ? 'Cerrando...' : 'Cerrar Turno'}
+        <div className="flex flex-col gap-4 mb-6">
+            {!canCloseShift && (
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>No se puede cerrar el turno</AlertTitle>
+                    <AlertDescription>
+                        Hay <strong>{occupiedTablesCount}</strong> mesa(s) ocupada(s). Por favor, procesa todos los cobros antes de cerrar la caja.
+                    </AlertDescription>
+                </Alert>
+            )}
+            
+            <div className="flex justify-end items-center gap-4">
+                <Button variant="outline" onClick={handleExport} disabled={transactions.length === 0}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar Reporte
                 </Button>
-            </form>
+                <form action={handleClearTransactions}>
+                    <Button 
+                      variant="destructive" 
+                      type="submit" 
+                      disabled={isPending || !canCloseShift}
+                    >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        {isPending ? 'Cerrando...' : 'Cerrar Turno'}
+                    </Button>
+                </form>
+            </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">

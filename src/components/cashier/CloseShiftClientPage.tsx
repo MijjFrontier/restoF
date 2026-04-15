@@ -4,18 +4,20 @@ import * as XLSX from 'xlsx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Download, XCircle } from 'lucide-react';
+import { Download, XCircle, AlertTriangle } from 'lucide-react';
 import { clearTransactions } from '@/lib/actions';
 import { format } from 'date-fns';
 import { useTransition } from 'react';
 import type { Transaction } from '@/lib/data';
 import { AppHeader } from '../AppHeader';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CloseShiftClientPageProps {
   transactions: Transaction[];
+  occupiedTablesCount: number;
 }
 
-export function CloseShiftClientPage({ transactions }: CloseShiftClientPageProps) {
+export function CloseShiftClientPage({ transactions, occupiedTablesCount }: CloseShiftClientPageProps) {
   const [isPending, startTransition] = useTransition();
 
   const totalSales = transactions.reduce((sum, tx) => sum + tx.total, 0);
@@ -56,6 +58,8 @@ export function CloseShiftClientPage({ transactions }: CloseShiftClientPageProps
     });
   }
 
+  const canCloseShift = occupiedTablesCount === 0;
+
   return (
     <>
       <AppHeader title="Cierre de Caja" showBackButton={true}>
@@ -65,7 +69,11 @@ export function CloseShiftClientPage({ transactions }: CloseShiftClientPageProps
               Exportar Reporte
             </Button>
             <form action={handleClearTransactions}>
-                <Button variant="destructive" type="submit" disabled={isPending}>
+                <Button 
+                  variant="destructive" 
+                  type="submit" 
+                  disabled={isPending || !canCloseShift}
+                >
                     <XCircle className="mr-2 h-4 w-4" />
                     {isPending ? 'Cerrando...' : 'Cerrar Turno'}
                 </Button>
@@ -73,6 +81,16 @@ export function CloseShiftClientPage({ transactions }: CloseShiftClientPageProps
         </div>
       </AppHeader>
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+        {!canCloseShift && (
+            <Alert variant="destructive" className="mb-8">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>No se puede realizar el cierre</AlertTitle>
+                <AlertDescription>
+                    Hay <strong>{occupiedTablesCount}</strong> mesa(s) con pedidos activos. Debes cobrar todas las cuentas antes de cerrar el turno.
+                </AlertDescription>
+            </Alert>
+        )}
+
         <Card className="mb-8">
             <CardHeader>
                 <CardTitle className="text-3xl font-headline">Reporte de Turno</CardTitle>
