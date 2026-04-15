@@ -1,15 +1,12 @@
 import Link from 'next/link';
 import { AppHeader } from '@/components/AppHeader';
-import { TableCard } from '@/components/TableCard';
-import { getTables } from '@/lib/actions';
+import { TablesGrid } from '@/components/TablesGrid';
 import { Button } from '@/components/ui/button';
 import { DoorClosed } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CashierDashboard() {
-  const tables = await getTables();
-
+export default function CashierDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader title="Gestión de Caja">
@@ -25,11 +22,7 @@ export default async function CashierDashboard() {
             <h2 className="text-2xl font-headline font-semibold">Mesas para Cobrar</h2>
             <p className="text-muted-foreground">Selecciona una mesa ocupada para procesar el pago.</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {tables.map(table => (
-            <TableCard key={table.id} table={table} role="cashier" />
-          ))}
-        </div>
+        <TablesGrid role="cashier" />
       </main>
     </div>
   );
